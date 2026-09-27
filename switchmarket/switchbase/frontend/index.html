@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SwitchMarket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+<div id="app">
+
+<header class="topbar" id="topbar">
+  <div class="topbar-brand">
+    <span class="brand-mark"></span>
+    <span class="brand-name">SwitchMarket</span>
+  </div>
+  <nav class="topbar-nav" id="topbarNav">
+    <button class="nav-item active" data-route="catalog">Витрина</button>
+    <button class="nav-item" data-route="deals">Мои сделки</button>
+    <button class="nav-item" data-route="collection">Коллекция</button>
+    <button class="nav-item" data-route="profile">Профиль</button>
+  </nav>
+  <div class="topbar-balance">
+    <span class="balance-value" id="balanceValue">0.00</span>
+    <span class="balance-unit">GRAM</span>
+  </div>
+</header>
+
+<div class="island" id="island">
+  <span class="island-dot" id="islandDot"></span>
+  <span class="island-text" id="islandText">SwitchMarket</span>
+</div>
+
+<main class="screen" id="screen"></main>
+
+<nav class="bottombar" id="bottombar">
+  <button class="bottom-item active" data-route="catalog">
+    <span class="bottom-icon">◈</span><span>Витрина</span>
+  </button>
+  <button class="bottom-item" data-route="deals">
+    <span class="bottom-icon">⇄</span><span>Сделки</span>
+  </button>
+  <button class="bottom-item" data-route="collection">
+    <span class="bottom-icon">◎</span><span>Коллекция</span>
+  </button>
+  <button class="bottom-item" data-route="profile">
+    <span class="bottom-icon">◐</span><span>Профиль</span>
+  </button>
+</nav>
+
+</div>
+
+<template id="tpl-listing-card">
+  <article class="listing-card">
+    <div class="listing-media">
+      <img class="listing-image" alt="">
+      <span class="listing-rarity"></span>
+    </div>
+    <div class="listing-body">
+      <h3 class="listing-title"></h3>
+      <div class="listing-seller">
+        <span class="seller-name"></span>
+        <span class="seller-badge"></span>
+      </div>
+      <div class="listing-footer">
+        <div class="listing-price"><span class="price-value"></span><span class="price-unit">GRAM</span></div>
+        <button class="btn btn-primary btn-buy">Купить через Гарант</button>
+      </div>
+    </div>
+  </article>
+</template>
+
+<template id="tpl-inventory-card">
+  <article class="inventory-card">
+    <div class="listing-media">
+      <img class="listing-image" alt="">
+    </div>
+    <div class="listing-body">
+      <h3 class="listing-title"></h3>
+      <p class="inventory-rarity"></p>
+      <div class="inventory-actions">
+        <input class="price-input" type="number" min="1" step="0.01" placeholder="Цена в GRAM">
+        <button class="btn btn-primary btn-list">Выставить</button>
+      </div>
+    </div>
+  </article>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>
