@@ -20,9 +20,9 @@
     <span class="brand-name">SwitchMarket</span>
   </div>
   <nav class="topbar-nav" id="topbarNav">
-    <button class="nav-item active" data-route="catalog">Маркет</button>
+    <button class="nav-item active" data-route="catalog">Торговля</button>
     <button class="nav-item" data-route="deals">Сделки</button>
-    <button class="nav-item" data-route="gifts">Подарки</button>
+    <button class="nav-item" data-route="gifts">Инвентарь</button>
     <button class="nav-item" data-route="disputes" data-role="arbiter">Споры</button>
     <button class="nav-item" data-route="profile">Профиль</button>
   </nav>
@@ -34,8 +34,8 @@
 
 <div class="island mode-nav" id="island">
   <div class="island-expanded" id="islandExpanded">
-    <button class="island-segment island-segment-primary" id="islandPrimaryBtn">Маркет</button>
-    <button class="island-segment island-segment-secondary" id="islandDealsBtn">Сделки</button>
+    <span class="island-brand-dot"></span>
+    <span class="island-brand-text">SwitchMarket</span>
   </div>
   <div class="island-collapsed" id="islandCollapsed">
     <button class="island-top-btn" id="islandTopBtn" aria-label="Наверх">
@@ -49,7 +49,7 @@
 <main class="screen" id="screen"></main>
 
 <nav class="bottombar" id="bottombar">
-  <button class="bottom-btn" data-route="gifts" aria-label="Подарки">
+  <button class="bottom-btn" data-route="gifts" aria-label="Инвентарь">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="20 12 20 22 4 22 4 12"></polyline>
       <rect x="2" y="7" width="20" height="5"></rect>
@@ -58,6 +58,25 @@
       <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
     </svg>
   </button>
+
+  <div class="bottom-center-group">
+    <button class="bottom-btn" data-route="deals" aria-label="Сделки">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="17 1 21 5 17 9"></polyline>
+        <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+        <polyline points="7 23 3 19 7 15"></polyline>
+        <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+      </svg>
+    </button>
+    <button class="bottom-btn" id="bottomMarketBtn" data-route="catalog" aria-label="Торговля">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <path d="M16 10a4 4 0 0 1-8 0"></path>
+      </svg>
+    </button>
+  </div>
+
   <button class="bottom-btn bottom-btn-profile" data-route="profile" aria-label="Профиль">
     <span class="bottom-balance-badge" id="bottomBalanceBadge">0 GRAM</span>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -77,6 +96,7 @@
     </div>
     <div class="listing-body">
       <h3 class="listing-title"></h3>
+      <div class="attribute-row"></div>
       <div class="listing-seller">
         <span class="seller-name"></span>
         <span class="seller-badge"></span>
@@ -96,7 +116,7 @@
     </div>
     <div class="listing-body">
       <h3 class="listing-title"></h3>
-      <p class="inventory-rarity"></p>
+      <div class="attribute-row"></div>
       <div class="inventory-actions">
         <input class="price-input" type="number" min="1" step="0.01" placeholder="Цена в GRAM">
         <button class="btn btn-primary btn-list">Выставить</button>

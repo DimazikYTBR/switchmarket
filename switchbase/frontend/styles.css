@@ -168,8 +168,23 @@ body.is-arbiter .nav-item[data-role="arbiter"] {
 .island-expanded {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 5px;
+  gap: 8px;
+  padding: 10px 20px;
+}
+
+.island-brand-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-violet), var(--accent-teal));
+  flex-shrink: 0;
+}
+
+.island-brand-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .island-collapsed {
@@ -185,27 +200,6 @@ body.is-arbiter .nav-item[data-role="arbiter"] {
 
 .island.compact .island-collapsed {
   display: flex;
-}
-
-.island-segment {
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 9px 17px;
-  border-radius: 999px;
-  transition: background 0.2s ease, color 0.2s ease;
-  white-space: nowrap;
-}
-
-.island-segment:active {
-  transform: scale(0.96);
-}
-
-.island-segment.active {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.14);
 }
 
 .island-top-btn {
@@ -364,6 +358,34 @@ body.is-arbiter .nav-item[data-role="arbiter"] {
   margin: 0 0 8px;
   font-size: 15px;
   font-weight: 600;
+}
+
+.attribute-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.attribute-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.attribute-chip .swatch {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .listing-seller {
@@ -895,12 +917,13 @@ body.is-arbiter .nav-item[data-role="arbiter"] {
     display: flex;
     position: fixed;
     bottom: calc(18px + env(safe-area-inset-bottom, 0px));
-    left: 50%;
-    transform: translateX(-50%);
+    left: 16px;
+    right: 16px;
     z-index: 40;
     align-items: center;
-    gap: 4px;
-    padding: 6px;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 6px 8px;
     border-radius: 999px;
     background: rgba(16, 18, 28, 0.58);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -908,10 +931,15 @@ body.is-arbiter .nav-item[data-role="arbiter"] {
     -webkit-backdrop-filter: blur(26px) saturate(140%);
     box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
   }
+  .bottom-center-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
   .bottom-btn {
     position: relative;
-    width: 56px;
-    height: 46px;
+    width: 54px;
+    height: 44px;
     border: none;
     background: transparent;
     border-radius: 999px;
@@ -920,10 +948,11 @@ body.is-arbiter .nav-item[data-role="arbiter"] {
     justify-content: center;
     color: var(--text-dim);
     transition: background 0.25s ease, color 0.25s ease;
+    flex-shrink: 0;
   }
   .bottom-btn svg {
-    width: 21px;
-    height: 21px;
+    width: 20px;
+    height: 20px;
   }
   .bottom-btn.active {
     background: rgba(255, 255, 255, 0.14);
@@ -932,7 +961,7 @@ body.is-arbiter .nav-item[data-role="arbiter"] {
   .bottom-balance-badge {
     position: absolute;
     top: -15px;
-    right: -14px;
+    right: -10px;
     background: rgba(63, 225, 208, 0.16);
     border: 1px solid rgba(63, 225, 208, 0.4);
     color: var(--accent-teal);
@@ -945,6 +974,38 @@ body.is-arbiter .nav-item[data-role="arbiter"] {
   }
   .screen {
     padding: 76px 16px 110px;
+  }
+  .listing-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .listing-body {
+    padding: 10px 11px 12px;
+  }
+  .listing-title {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .attribute-chip {
+    font-size: 9.5px;
+    padding: 2px 6px;
+  }
+  .listing-seller {
+    font-size: 11px;
+    margin-bottom: 10px;
+  }
+  .price-value {
+    font-size: 14px;
+  }
+  .listing-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .btn-buy {
+    width: 100%;
+    padding: 9px 10px;
+    font-size: 12px;
   }
   .deal-page {
     grid-template-columns: 1fr;

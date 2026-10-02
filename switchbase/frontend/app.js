@@ -17,9 +17,9 @@ const balanceEl = document.getElementById('balanceValue');
 const islandEl = document.getElementById('island');
 
 const ROUTE_LABELS = {
-  catalog: 'Маркет',
+  catalog: 'Торговля',
   deals: 'Сделки',
-  gifts: 'Подарки',
+  gifts: 'Инвентарь',
   profile: 'Профиль',
   disputes: 'Споры',
 };
@@ -37,25 +37,12 @@ const STATUS_LABELS = {
 
 let scrollHandler = null;
 
-function updateIslandSegments() {
-  const primaryBtn = document.getElementById('islandPrimaryBtn');
-  const dealsBtn = document.getElementById('islandDealsBtn');
-  if (!primaryBtn || !dealsBtn) return;
-  const isArbiter = !!(state.user && state.user.role === 'arbiter');
-  const primaryTarget = isArbiter ? 'disputes' : 'catalog';
-  primaryBtn.textContent = isArbiter ? 'Споры' : 'Маркет';
-  primaryBtn.dataset.target = primaryTarget;
-  primaryBtn.classList.toggle('active', state.route === primaryTarget);
-  dealsBtn.classList.toggle('active', state.route === 'deals');
-}
-
 function enterNavIslandMode(tabLabel) {
   if (scrollHandler) {
     window.removeEventListener('scroll', scrollHandler);
     scrollHandler = null;
   }
   islandEl.classList.remove('compact');
-  updateIslandSegments();
 
   document.getElementById('islandTabName').textContent = tabLabel;
   document.getElementById('islandStatusDot').className = 'island-status-dot';
@@ -209,6 +196,47 @@ function initTonConnect() {
   });
 }
 
+const ATTRIBUTE_LABELS = {
+  model: 'Модель',
+  backdrop: 'Фон',
+  symbol: 'Символ',
+};
+
+function hashHue(value) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = value.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash) % 360;
+}
+
+function renderAttributeChips(item) {
+  const chips = [];
+
+  if (item.rarity_number) {
+    chips.push(`<span class="attribute-chip">№ ${escapeHtml(String(item.rarity_number))}</span>`);
+  }
+
+  let attributes = [];
+  try {
+    attributes = JSON.parse(item.attributes_json || '[]');
+  } catch (err) {
+    attributes = [];
+  }
+
+  for (const attr of attributes) {
+    const traitType = String(attr.trait_type || attr.name || '').toLowerCase();
+    const label = ATTRIBUTE_LABELS[traitType];
+    if (!label || !attr.value) continue;
+    const hue = hashHue(String(attr.value));
+    chips.push(
+      `<span class="attribute-chip"><span class="swatch" style="background:hsl(${hue},62%,58%)"></span>${label}: ${escapeHtml(String(attr.value))}</span>`
+    );
+  }
+
+  return chips.join('');
+}
+
 function badgeForRole(role) {
   if (role === 'verified') return '<span class="seller-badge verified">Проверен ✓</span>';
   if (role === 'arbiter') return '<span class="seller-badge verified">Арбитр</span>';
@@ -219,8 +247,8 @@ async function loadCatalog() {
   screenEl.innerHTML = `
     <div class="section-heading">
       <div>
-        <h2>Маркет</h2>
-        <p>Коллекционные предметы, доступные для безопасной сделки через Гарант</p>
+        <h2>Торговля</h2>
+        <p>Коллекционные NFT-подарки, доступные для безопасной сделки через Гарант</p>
       </div>
     </div>
     <div class="filter-row">
@@ -251,6 +279,7 @@ async function loadCatalog() {
     node.querySelector('.listing-image').src = listing.item.preview_url || '';
     node.querySelector('.listing-rarity').textContent = listing.item.rarity_number ? `#${listing.item.rarity_number}` : '';
     node.querySelector('.listing-title').textContent = listing.item.title;
+    node.querySelector('.attribute-row').innerHTML = renderAttributeChips(listing.item);
     node.querySelector('.seller-name').textContent = listing.seller.first_name;
     node.querySelector('.seller-badge').outerHTML = badgeForRole(listing.seller.role);
     node.querySelector('.price-value').textContent = listing.price.toFixed(2);
@@ -273,7 +302,7 @@ async function loadInventory() {
   screenEl.innerHTML = `
     <div class="section-heading">
       <div>
-        <h2>Подарки</h2>
+        <h2>Инвентарь</h2>
         <p>NFT-подарки Telegram из вашего TON-кошелька, доступные к выставлению на продажу</p>
       </div>
       <button class="btn btn-ghost" id="syncInventoryBtn">Синхронизировать</button>
@@ -305,7 +334,7 @@ async function renderInventory() {
     const node = template.content.cloneNode(true);
     node.querySelector('.listing-image').src = item.preview_url || '';
     node.querySelector('.listing-title').textContent = item.title;
-    node.querySelector('.inventory-rarity').textContent = item.rarity_number ? `Номер #${item.rarity_number}` : '';
+    node.querySelector('.attribute-row').innerHTML = renderAttributeChips(item);
     const priceInput = node.querySelector('.price-input');
     const listBtn = node.querySelector('.btn-list');
 
@@ -793,13 +822,34 @@ function bindNav() {
       window.location.hash = `#/${el.dataset.route}`;
     });
   });
+}
 
-  document.getElementById('islandPrimaryBtn').addEventListener('click', (e) => {
-    window.location.hash = `#/${e.currentTarget.dataset.target || 'catalog'}`;
-  });
-  document.getElementById('islandDealsBtn').addEventListener('click', () => {
-    window.location.hash = '#/deals';
-  });
+function applyArbiterBottomButton() {
+  const btn = document.getElementById('bottomMarketBtn');
+  if (!btn) return;
+  const isArbiter = !!(state.user && state.user.role === 'arbiter');
+
+  if (isArbiter) {
+    btn.dataset.route = 'disputes';
+    btn.setAttribute('aria-label', 'Споры');
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+        <line x1="12" y1="9" x2="12" y2="13"></line>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+    `;
+  } else {
+    btn.dataset.route = 'catalog';
+    btn.setAttribute('aria-label', 'Торговля');
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <path d="M16 10a4 4 0 0 1-8 0"></path>
+      </svg>
+    `;
+  }
 }
 
 async function bootstrap() {
@@ -816,6 +866,7 @@ async function bootstrap() {
     return;
   }
 
+  applyArbiterBottomButton();
   initTonConnect();
   window.addEventListener('hashchange', router);
   await router();
