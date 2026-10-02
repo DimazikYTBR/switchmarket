@@ -49,6 +49,28 @@ async def create_order(
     return await crud.get_order_by_id(db, order.id)
 
 
+@router.get("/queue/disputes", response_model=list[schemas.OrderOut])
+async def disputes_queue(
+    arbiter: models.User = Depends(security.require_arbiter),
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    result = await db.execute(
+        select(models.Order)
+        .where(models.Order.status == models.OrderStatus.DISPUTED)
+        .options(
+            selectinload(models.Order.item),
+            selectinload(models.Order.buyer),
+            selectinload(models.Order.seller),
+            selectinload(models.Order.arbiter),
+        )
+        .order_by(models.Order.updated_at.desc())
+    )
+    return list(result.scalars().all())
+
+
 @router.get("/{public_code}", response_model=schemas.OrderOut)
 async def get_order(
     public_code: str,

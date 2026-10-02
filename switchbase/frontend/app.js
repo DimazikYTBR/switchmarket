@@ -15,8 +15,14 @@ const state = {
 const screenEl = document.getElementById('screen');
 const balanceEl = document.getElementById('balanceValue');
 const islandEl = document.getElementById('island');
-const islandTextEl = document.getElementById('islandText');
-const islandDotEl = document.getElementById('islandDot');
+
+const ROUTE_LABELS = {
+  catalog: 'Маркет',
+  deals: 'Сделки',
+  gifts: 'Подарки',
+  profile: 'Профиль',
+  disputes: 'Споры',
+};
 
 const STATUS_LABELS = {
   awaiting_payment: 'Ожидание оплаты',
@@ -29,24 +35,102 @@ const STATUS_LABELS = {
   cancelled: 'Отменено',
 };
 
-function setIsland(text, mode) {
-  islandTextEl.textContent = text;
-  islandEl.className = 'island pulse';
-  if (mode) islandEl.classList.add(`status-${mode}`);
+let scrollHandler = null;
+
+function updateIslandSegments() {
+  const primaryBtn = document.getElementById('islandPrimaryBtn');
+  const dealsBtn = document.getElementById('islandDealsBtn');
+  if (!primaryBtn || !dealsBtn) return;
+  const isArbiter = !!(state.user && state.user.role === 'arbiter');
+  const primaryTarget = isArbiter ? 'disputes' : 'catalog';
+  primaryBtn.textContent = isArbiter ? 'Споры' : 'Маркет';
+  primaryBtn.dataset.target = primaryTarget;
+  primaryBtn.classList.toggle('active', state.route === primaryTarget);
+  dealsBtn.classList.toggle('active', state.route === 'deals');
 }
 
-function showToast(message, isError) {
+function enterNavIslandMode(tabLabel) {
+  if (scrollHandler) {
+    window.removeEventListener('scroll', scrollHandler);
+    scrollHandler = null;
+  }
+  islandEl.classList.remove('compact');
+  updateIslandSegments();
+
+  document.getElementById('islandTabName').textContent = tabLabel;
+  document.getElementById('islandStatusDot').className = 'island-status-dot';
+  document.getElementById('islandTopBtn').onclick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  scrollHandler = () => {
+    islandEl.classList.toggle('compact', window.scrollY > 28);
+  };
+  window.addEventListener('scroll', scrollHandler, { passive: true });
+}
+
+function enterDealIslandMode(order) {
+  if (scrollHandler) {
+    window.removeEventListener('scroll', scrollHandler);
+    scrollHandler = null;
+  }
+  islandEl.classList.add('compact');
+  document.getElementById('islandTabName').textContent = STATUS_LABELS[order.status] || 'Сделка';
+
+  let variant = 'pulse';
+  if (order.status === 'disputed') variant = 'danger pulse';
+  else if (order.status === 'awaiting_payment') variant = 'warning pulse';
+  else if (order.status === 'completed' || order.status === 'refunded') variant = '';
+  document.getElementById('islandStatusDot').className = 'island-status-dot' + (variant ? ' ' + variant : '');
+
+  document.getElementById('islandTopBtn').onclick = () => {
+    window.location.hash = '#/deals';
+  };
+}
+
+function updateBalanceDisplay() {
+  if (!state.user) return;
+  balanceEl.textContent = state.user.available_balance.toFixed(2);
+  const badge = document.getElementById('bottomBalanceBadge');
+  if (badge) badge.textContent = `${Math.round(state.user.available_balance).toLocaleString('ru-RU')} GRAM`;
+}
+
+function shortenAddress(address) {
+  if (!address || address.length < 12) return address;
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
+function showToast(message, isError, duration = 4200) {
   let stack = document.querySelector('.toast-stack');
   if (!stack) {
     stack = document.createElement('div');
     stack.className = 'toast-stack';
     document.body.appendChild(stack);
   }
+
   const toast = document.createElement('div');
   toast.className = 'toast' + (isError ? ' error' : '');
-  toast.textContent = message;
+
+  const text = document.createElement('div');
+  text.className = 'toast-message';
+  text.textContent = message;
+
+  const track = document.createElement('div');
+  track.className = 'toast-progress-track';
+  const fill = document.createElement('div');
+  fill.className = 'toast-progress-fill';
+  fill.style.animationDuration = `${duration}ms`;
+  track.appendChild(fill);
+
+  toast.appendChild(text);
+  toast.appendChild(track);
   stack.appendChild(toast);
-  setTimeout(() => toast.remove(), 4200);
+
+  const dismiss = () => {
+    toast.classList.add('leaving');
+    setTimeout(() => toast.remove(), 280);
+  };
+  setTimeout(dismiss, duration);
 }
 
 async function api(path, options = {}) {
@@ -91,12 +175,38 @@ async function authenticate() {
     });
     state.token = auth.access_token;
     state.user = await api('/api/auth/me');
-    balanceEl.textContent = state.user.available_balance.toFixed(2);
+    updateBalanceDisplay();
+    if (state.user.role === 'arbiter') document.body.classList.add('is-arbiter');
     return true;
   } catch (err) {
     showToast(err.message, true);
     return false;
   }
+}
+
+let tonConnectUI = null;
+
+function initTonConnect() {
+  if (!window.TON_CONNECT_UI) return;
+
+  tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+    manifestUrl: `${window.location.origin}/tonconnect-manifest.json`,
+  });
+
+  tonConnectUI.onStatusChange(async (wallet) => {
+    if (!wallet) return;
+    const address = wallet.account.address;
+    if (state.user && state.user.ton_wallet_address === address) return;
+
+    try {
+      await api(`/api/wallet/connect?address=${encodeURIComponent(address)}`, { method: 'POST' });
+      state.user.ton_wallet_address = address;
+      showToast('Кошелёк подключён');
+      if (state.route === 'profile') await loadProfile();
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  });
 }
 
 function badgeForRole(role) {
@@ -109,7 +219,7 @@ async function loadCatalog() {
   screenEl.innerHTML = `
     <div class="section-heading">
       <div>
-        <h2>Витрина товаров</h2>
+        <h2>Маркет</h2>
         <p>Коллекционные предметы, доступные для безопасной сделки через Гарант</p>
       </div>
     </div>
@@ -150,14 +260,12 @@ async function loadCatalog() {
 }
 
 async function purchaseListing(listingId) {
-  setIsland('Создание сделки…', 'warning');
   try {
     const order = await api('/api/orders', { method: 'POST', body: { listing_id: listingId } });
     showToast('Сделка создана, переходим в комнату сделки');
     window.location.hash = `#/deal/${order.public_code}`;
   } catch (err) {
     showToast(err.message, true);
-    setIsland('SwitchMarket', null);
   }
 }
 
@@ -165,8 +273,8 @@ async function loadInventory() {
   screenEl.innerHTML = `
     <div class="section-heading">
       <div>
-        <h2>Моя коллекция</h2>
-        <p>Подарки и NFT из вашего TON-кошелька, доступные к выставлению на продажу</p>
+        <h2>Подарки</h2>
+        <p>NFT-подарки Telegram из вашего TON-кошелька, доступные к выставлению на продажу</p>
       </div>
       <button class="btn btn-ghost" id="syncInventoryBtn">Синхронизировать</button>
     </div>
@@ -215,15 +323,12 @@ async function renderInventory() {
 }
 
 async function syncInventory() {
-  setIsland('Синхронизация с TON…', 'warning');
   try {
     await api('/api/inventory/sync', { method: 'POST' });
     showToast('Инвентарь обновлён');
     await renderInventory();
   } catch (err) {
     showToast(err.message, true);
-  } finally {
-    setIsland('SwitchMarket', null);
   }
 }
 
@@ -235,7 +340,7 @@ async function createListing(itemId, priceRaw) {
   }
   try {
     await api('/api/listings', { method: 'POST', body: { item_id: itemId, price } });
-    showToast('Лот выставлен на витрину');
+    showToast('Лот выставлен');
     await renderInventory();
   } catch (err) {
     showToast(err.message, true);
@@ -279,6 +384,49 @@ async function loadDeals() {
   }
 }
 
+async function loadDisputes() {
+  screenEl.innerHTML = `
+    <div class="section-heading">
+      <div>
+        <h2>Споры</h2>
+        <p>Сделки с открытым спором, ожидающие решения арбитра</p>
+      </div>
+    </div>
+    <div class="deal-list" id="disputesList"></div>
+  `;
+
+  const list = document.getElementById('disputesList');
+  let disputes;
+  try {
+    disputes = await api('/api/orders/queue/disputes');
+  } catch (err) {
+    list.innerHTML = `<div class="empty-state">${err.message}</div>`;
+    return;
+  }
+
+  if (disputes.length === 0) {
+    list.innerHTML = '<div class="empty-state">Открытых споров нет.</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  for (const order of disputes) {
+    state.orders[order.public_code] = order;
+    const row = document.createElement('div');
+    row.className = 'deal-row';
+    row.innerHTML = `
+      <img src="${order.item.preview_url}" alt="">
+      <div class="deal-row-main">
+        <div class="deal-row-title">${order.item.title}</div>
+        <div class="deal-row-sub">${order.buyer.first_name} ↔ ${order.seller.first_name} · ${order.price.toFixed(2)} GRAM</div>
+      </div>
+      <span class="status-pill status-disputed">Спор</span>
+    `;
+    row.addEventListener('click', () => { window.location.hash = `#/deal/${order.public_code}`; });
+    list.appendChild(row);
+  }
+}
+
 async function loadProfile() {
   let instructions = { platform_wallet_address: '—', memo: state.user.deposit_memo };
   try {
@@ -307,10 +455,12 @@ async function loadProfile() {
         </div>
       </div>
       <div style="margin-top:20px">
-        <p style="color:var(--text-dim);font-size:13px;margin-bottom:6px">TON-кошелёк для вывода</p>
+        <p style="color:var(--text-dim);font-size:13px;margin-bottom:6px">TON-кошелёк</p>
         <div class="wallet-row">
-          <input class="price-input" id="walletInput" placeholder="EQ..." value="${state.user.ton_wallet_address || ''}">
-          <button class="btn btn-primary" id="walletSaveBtn">Сохранить</button>
+          <div class="price-input" style="display:flex;align-items:center;color:${state.user.ton_wallet_address ? 'var(--text-primary)' : 'var(--text-dim)'}">
+            ${state.user.ton_wallet_address ? shortenAddress(state.user.ton_wallet_address) : 'Кошелёк не подключён'}
+          </div>
+          <button class="btn btn-primary" id="tonConnectBtn">${state.user.ton_wallet_address ? 'Сменить' : 'Подключить'}</button>
         </div>
       </div>
     </div>
@@ -337,35 +487,28 @@ async function loadProfile() {
       </p>
       <div class="wallet-row" style="margin-bottom:8px">
         <input class="price-input" id="withdrawAmount" type="number" min="1" step="0.01" placeholder="Сумма в GRAM">
-        <input class="price-input" id="withdrawAddress" placeholder="Адрес TON-кошелька">
+        <input class="price-input" id="withdrawAddress" placeholder="Адрес TON-кошелька" value="${state.user.ton_wallet_address || ''}">
       </div>
       <button class="btn btn-primary btn-block" id="withdrawBtn">Запросить вывод</button>
     </div>
   `;
 
-  document.getElementById('walletSaveBtn').addEventListener('click', async () => {
-    const address = document.getElementById('walletInput').value.trim();
-    if (!address) return;
-    try {
-      await api(`/api/wallet/connect?address=${encodeURIComponent(address)}`, { method: 'POST' });
-      state.user.ton_wallet_address = address;
-      showToast('Кошелёк для вывода сохранён');
-    } catch (err) {
-      showToast(err.message, true);
+  document.getElementById('tonConnectBtn').addEventListener('click', () => {
+    if (!tonConnectUI) {
+      showToast('TonConnect не удалось загрузить. Проверьте подключение к интернету', true);
+      return;
     }
+    tonConnectUI.openModal();
   });
 
   document.getElementById('syncDepositBtn').addEventListener('click', async () => {
-    setIsland('Проверка платежа…', 'warning');
     try {
       state.user = await api('/api/wallet/deposit/sync', { method: 'POST' });
-      balanceEl.textContent = state.user.available_balance.toFixed(2);
+      updateBalanceDisplay();
       showToast('Баланс обновлён');
       await loadProfile();
     } catch (err) {
       showToast(err.message, true);
-    } finally {
-      setIsland('SwitchMarket', null);
     }
   });
 
@@ -380,7 +523,7 @@ async function loadProfile() {
       await api('/api/wallet/withdraw', { method: 'POST', body: { amount, destination_address } });
       showToast('Заявка на вывод отправлена на проверку арбитру');
       state.user = await api('/api/auth/me');
-      balanceEl.textContent = state.user.available_balance.toFixed(2);
+      updateBalanceDisplay();
       await loadProfile();
     } catch (err) {
       showToast(err.message, true);
@@ -487,7 +630,7 @@ async function loadDeal(code) {
 
   state.orders[order.public_code] = order;
   state.currentOrder = order;
-  setIsland(STATUS_LABELS[order.status] || 'Сделка', order.status === 'disputed' ? 'danger' : (order.status === 'awaiting_payment' ? 'warning' : null));
+  enterDealIslandMode(order);
 
   screenEl.innerHTML = `
     <div class="deal-page">
@@ -616,7 +759,7 @@ function sendChatMessage(code) {
 }
 
 function setActiveNav(route) {
-  document.querySelectorAll('.nav-item, .bottom-item').forEach(el => {
+  document.querySelectorAll('.nav-item, .bottom-btn').forEach(el => {
     el.classList.toggle('active', el.dataset.route === route);
   });
 }
@@ -630,23 +773,32 @@ async function router() {
     return;
   }
 
-  const route = hash.replace('#/', '') || 'catalog';
+  let route = hash.replace('#/', '') || 'catalog';
+  if (route === 'collection') route = 'gifts';
   state.route = route;
   setActiveNav(route);
-  setIsland('SwitchMarket', null);
+  enterNavIslandMode(ROUTE_LABELS[route] || 'SwitchMarket');
 
   if (route === 'catalog') await loadCatalog();
   else if (route === 'deals') await loadDeals();
-  else if (route === 'collection') await loadInventory();
+  else if (route === 'gifts') await loadInventory();
   else if (route === 'profile') await loadProfile();
+  else if (route === 'disputes') await loadDisputes();
   else await loadCatalog();
 }
 
 function bindNav() {
-  document.querySelectorAll('.nav-item, .bottom-item').forEach(el => {
+  document.querySelectorAll('.nav-item, .bottom-btn').forEach(el => {
     el.addEventListener('click', () => {
       window.location.hash = `#/${el.dataset.route}`;
     });
+  });
+
+  document.getElementById('islandPrimaryBtn').addEventListener('click', (e) => {
+    window.location.hash = `#/${e.currentTarget.dataset.target || 'catalog'}`;
+  });
+  document.getElementById('islandDealsBtn').addEventListener('click', () => {
+    window.location.hash = '#/deals';
   });
 }
 
@@ -664,6 +816,7 @@ async function bootstrap() {
     return;
   }
 
+  initTonConnect();
   window.addEventListener('hashchange', router);
   await router();
 }
